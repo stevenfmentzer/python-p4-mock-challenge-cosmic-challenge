@@ -30,38 +30,32 @@ def home():
 def get_scientists(): 
     try:
         if request.method == 'GET':
-            print("here")
-            scientists_dict = [scientist.to_dict(rules=('-missions',)) for scientist in Scientist.query.all()]
-            print("got scientists")
-            response = make_response(scientists_dict,200)
+            scientists = [scientist.to_dict(rules=('-missions',)) for scientist in Scientist.query.all()]
+            response = make_response(scientists,200)
 
         elif request.method == 'POST':
             if request.headers.get("Content-Type") == 'application/json':
                 form_data = request.get_json()
             else:
                 form_data = request.form
-
-            new_scientist = Scientist(
-                name = form_data['name'],
-                field_of_study = form_data['field_of_study']
-                )
+            new_scientist = Scientist(name = form_data['name'],field_of_study = form_data['field_of_study'])
             db.session.add(new_scientist)
             db.session.commit()
+            response = make_response(new_scientist.to_dict(), 201)
 
-            response = make_response(new_scientist.to_dict, 201)
     except: 
         response = make_response({"errors" : ["validation errors"]},400)
     return response
 
 @app.route('/scientists/<int:id>', methods=['GET','PATCH','DELETE'])
 def scientist_by_id(id):
-    try: 
-        scientist = Scientist.query.filter(Scientist.id == id).first()
+    scientist = Scientist.query.filter(Scientist.id == id).first()
+    if scientist:
         if request.method == 'GET':
-            response = make_response(scientist.to_dict(),200)
+            response = make_response(scientist.to_dict(), 200)
 
         elif request.method == 'PATCH':
-            try:
+            try: 
                 if request.headers.get("Content-Type") == 'application/json':
                     form_data = request.get_json()
                 else:
@@ -72,37 +66,38 @@ def scientist_by_id(id):
 
                 db.session.commit()
                 response = make_response(scientist.to_dict(), 202)
-            except: 
-                response = make_response({"errors" : "Scientist not found"}, 404)
+            except ValueError:
+                response = make_response(
+                    { "errors" : ["validation errors"] },
+                    400
+                )
         elif request.method == 'DELETE':
             db.session.delete(scientist)
             db.session.commit()
             response = make_response({'error':'Scientist not found'},204)
 
-    except: 
+    else: 
         response = make_response({"error" : "Scientist not found"},404)
     return response
 
-@app.route('/planets/')
+@app.route('/planets')
 def get_planets(): 
     try: 
-        print("here")
-        planets = [planet.to_dict() for planet in Planet.query.all()]
-        print("here-2")
+        planets = [planet.to_dict(rules=('-missions',)) for planet in Planet.query.all()]
         response = make_response(planets,200)
-        print("here-3")
 
     except: 
         response = make_response({"ERROR" : "BAD REQUEST"},400)
     return response
 
-@app.route('/missions/', methods=['POST'])
+@app.route('/missions', methods=['POST'])
 def create_mission():
     try: 
         if request.headers.get("Content-Type") == 'application/json':
             form_data = request.get_json()
         else:
             form_data = request.form
+            
         new_mission = Mission(
             name = form_data['name'], 
             scientist_id = form_data['scientist_id'],
@@ -112,11 +107,13 @@ def create_mission():
         db.session.add(new_mission)
         db.session.commit()
         
-        response = make_response(new_mission.to_dict(), 201)
-
+        response = make_response(new_mission.to_dict(rules=('-planet.missions',)), 201)
+        print("hello")
     except: 
-        response = make_response({"errors" : ["validation errors"]},400)
+        response = make_response({"errors" : ["validation errors"]}, 400)
+
     return response
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
+    

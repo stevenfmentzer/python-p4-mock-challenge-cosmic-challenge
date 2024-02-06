@@ -43,7 +43,7 @@ class Scientist(db.Model, SerializerMixin):
     serialize_rules = ('-missions.scientist',)
     # Add validation
     @validates('name', 'field_of_study')
-    def validate_input(self, key, value):
+    def validate_scientist_input(self, key, value):
         if not value:
             raise ValueError(f"Scientist entry must have valid {key}")
         return value
@@ -63,11 +63,12 @@ class Mission(db.Model, SerializerMixin):
     planet = db.relationship('Planet', back_populates='missions')
     scientist = db.relationship('Scientist', back_populates='missions')
     # Add serialization rules
-    serialize_rules = ('-planets.mission','-scientists.missions')
+    serialize_rules = ('-planet.missions','-scientist.missions')
     # Add validation
     @validates('name', 'scientist_id', 'planet_id')
-    def validate_input(self, key, value):
+    def validate_mission_input(self, key, value):
         if not value:
             raise ValueError(f"Mission entry must have valid {key}")
+        return value
 
 # add any models you may need.
